@@ -24,7 +24,13 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-from ../suas_scripts/RJPEG import RJPEG
+import sys
+
+# Add the path to the flir directory
+sys.path.append(os.path.expanduser("~/Desktop/Senior_Project/flir"))
+
+from RJPEG import RJPEG
+
 
 
 def show_image(src: RJPEG):
@@ -76,20 +82,20 @@ def compute_directory_average(directory: str, array_name: str, kernel_size: int 
     return averages
 
 
-def plot_results(main_run, run2, run3, run4):
+def plot_results(main_run):
     """Plots digital count results for comparison between runs."""
-    print("Plotting comparison between multiple runs...")
+    print("Plotting ...")
     averages = np.load(main_run)
-    averages_2 = np.load(run2)
-    averages_3 = np.load(run3)
-    averages_4 = np.load(run4)
+    # averages_2 = np.load(run2)
+    #averages_3 = np.load(run3)
+    #averages_4 = np.load(run4)
 
-    time_minutes = np.arange(len(averages_3)) * 5 / 60
+    time_minutes = np.arange(len(averages)) * 5 / 60
 
-    plt.plot(time_minutes, averages[0:712], label='0930 Auto FFC run')
-    plt.plot(time_minutes, averages_2[0:712], label='1900 Manual FFC run')
-    plt.plot(time_minutes, averages_3, label='1230 Auto FFC run')
-    plt.plot(time_minutes, averages_4[0:712], label='1530 Manual FFC run')
+    plt.plot(time_minutes, averages, label='1108 Auto FFC Run')
+    # plt.plot(time_minutes, averages_2[0:712], label='1900 Manual FFC run')
+    # plt.plot(time_minutes, averages_3, label='1230 Auto FFC run')
+    # lt.plot(time_minutes, averages_4[0:712], label='1530 Manual FFC run')
 
     plt.xlabel("Minutes")
     plt.ylabel("Digital Count")
@@ -108,7 +114,7 @@ def main():
     ap.add_argument("-s", "--show", action="store_true", help="Show image")
     ap.add_argument("-S", "--single", action="store_true", help="Compute average digital count for one image")
     ap.add_argument("-a", "--array", help="Name of numpy array to save averages")
-    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=4)
+    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=1)
 
     args = ap.parse_args()
 
