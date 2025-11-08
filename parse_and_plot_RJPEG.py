@@ -24,7 +24,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-from RJPEG import RJPEG
+from ../suas_scripts/RJPEG import RJPEG
 
 
 def show_image(src: RJPEG):
