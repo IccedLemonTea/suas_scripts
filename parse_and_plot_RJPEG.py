@@ -9,17 +9,6 @@
 # OR 
 # The numpy array created by this file can be read in and plotted
 
-# NOTE : You always need to provide a single image filepath, even if you are computing an entire directory. Just a quirk I haven't worked out yet
-
-### TEST COMMAND LINES ###
-#  python parse_and_plot_RJPEG.py ../FLIRSIRAS_CalData/20251103/20251103_135118_490_MSX_R.jpg -s --> Shows image at path
-# 
-#  python parse_and_plot.py  ../11_06_1900/ -a 10131106_1900_40ec_45BB_maunalFFC --> Averages over directory D, saves out array a
-# 
-#  python parse_and_plot.py -p ../20251106_1230/20251106_40ec_45BB_autoFFC.npy  --> plots numpy array
-
-
-# Requirements below
 import os
 import numpy as np
 import matplotlib.pyplot as plt
