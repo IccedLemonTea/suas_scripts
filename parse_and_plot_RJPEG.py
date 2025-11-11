@@ -48,7 +48,7 @@ def compute_directory_average(directory: str, array_name: str, kernel_size: int 
     first_image_path = None
 
     # Loop through each RJPEG image
-    for file in os.listdir(directory):
+    for file in sorted(os.listdir(directory)):
         filename = os.fsdecode(file)
         if filename.endswith("_R.jpg"):
             file_path = os.path.join(os.fsdecode(directory), filename)
@@ -76,22 +76,24 @@ def plot_results(main_run):
     print("Plotting ...")
     averages = np.load(main_run)
     # averages_2 = np.load(run2)
-    #averages_3 = np.load(run3)
+    # averages_3 = np.load(run3)
     #averages_4 = np.load(run4)
 
-    time_minutes = np.arange(len(averages)) * 5 / 60
-
-    plt.plot(time_minutes, averages, label='1108 Auto FFC Run')
-    # plt.plot(time_minutes, averages_2[0:712], label='1900 Manual FFC run')
-    # plt.plot(time_minutes, averages_3, label='1230 Auto FFC run')
+    time_minutes = np.arange(len(averages)) * 1 / 60
+    # print(f"{averages.shape} {averages_2.shape} {averages_3.shape}")
+    
+    plt.plot(time_minutes, averages, label='1106_0930 Auto FFC Run')
+    # plt.plot(time_minutes, averages_2[0:725], label='1107_1430 Auto FFC run')
+    # plt.plot(time_minutes, averages_3[0:725], label='1109_1202 Auto FFC run')
     # lt.plot(time_minutes, averages_4[0:712], label='1530 Manual FFC run')
 
     plt.xlabel("Minutes")
     plt.ylabel("Digital Count")
-    plt.title("Digital Count in 40°C Env, 45°C BB, averaged at center (10x10 kernel)")
+    plt.title("BB runs at 20 C EC")
     plt.grid(True)
     plt.legend()
     plt.show()
+    plt.savefig("BB runs at 20 C EC")
     print("Plot complete.")
 
 
