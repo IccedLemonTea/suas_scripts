@@ -64,6 +64,7 @@ def compute_directory_average(directory: str, array_name: str, kernel_size: int 
                 center_x - half_k:center_x + half_k
             ]
             averages.append(np.average(patch))
+            print(f"Appending {filename} to array")
 
     averages = np.array(averages)
     np.save(array_name, averages)
@@ -71,29 +72,31 @@ def compute_directory_average(directory: str, array_name: str, kernel_size: int 
     return averages
 
 
-def plot_results(main_run):
+def plot_results(main_run, run2, run3):
     """Plots digital count results for comparison between runs."""
     print("Plotting ...")
     averages = np.load(main_run)
-    # averages_2 = np.load(run2)
-    # averages_3 = np.load(run3)
+    averages_2 = np.load(run2)
+    averages_3 = np.load(run3)
     #averages_4 = np.load(run4)
 
-    time_minutes = np.arange(len(averages)) * 1 / 60
+    time_minutes = np.arange(len(averages)) * 3 / 60
     # print(f"{averages.shape} {averages_2.shape} {averages_3.shape}")
     
-    plt.plot(time_minutes, averages, label='1106_0930 Auto FFC Run')
-    # plt.plot(time_minutes, averages_2[0:725], label='1107_1430 Auto FFC run')
-    # plt.plot(time_minutes, averages_3[0:725], label='1109_1202 Auto FFC run')
+    averages_2_corrected = averages_2[0:1365]
+
+    plt.plot(time_minutes, averages, label="12/10_1330")
+    plt.plot(time_minutes, averages_2[0:2050], label="12/16_1430")
+    plt.plot(time_minutes, averages_3[0:2050], label="12/06_1200")
     # lt.plot(time_minutes, averages_4[0:712], label='1530 Manual FFC run')
 
     plt.xlabel("Minutes")
     plt.ylabel("Digital Count")
-    plt.title("BB runs at 20 C EC")
+    plt.title("10 EC 10-70 x 5 BB manual FFC")
     plt.grid(True)
     plt.legend()
     plt.show()
-    plt.savefig("BB runs at 20 C EC")
+    plt.savefig("20251216_bb_manualFFC_with_three_wiggles")
     print("Plot complete.")
 
 
@@ -105,7 +108,7 @@ def main():
     ap.add_argument("-s", "--show", action="store_true", help="Show image")
     ap.add_argument("-S", "--single", action="store_true", help="Compute average digital count for one image")
     ap.add_argument("-a", "--array", help="Name of numpy array to save averages")
-    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=1)
+    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=3)
 
     args = ap.parse_args()
 
