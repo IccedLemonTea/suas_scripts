@@ -8,16 +8,26 @@ Clone the repository and install the required dependencies:
 * git clone https://github.com/iccedlemontea/suas_scripts.git
 * cd suas_scripts
 
-## Usage
+## Usage - Parse and Plot RJPEG
 
-* python rjpeg_analysis.py /path/to/image_R.jpg --show
-* python rjpeg_analysis.py /path/to/image_R.jpg --single
-* python rjpeg_analysis.py /path/to/folder -a output.npy
-* python rjpeg_analysis.py -p run1.npy run2.npy run3.npy run4.npy
+* python parse_and_plot_RJPEG.py /path/to/image_R.jpg --show
+* python parse_and_plot_RJPEG.py /path/to/image_R.jpg --single
+* python parse_and_plot_RJPEG.py /path/to/folder -a output.npy
+* python parse_and_plot_RJPEG.py -p run1.npy run2.npy run3.npy run4.npy
+
+## Usage - Calibrate RJPEG
+If you would like to calibrate your FLIR SIRAS using a blackbody run as specified in the user manual, here are the commands to do so:
+
+* python calibrate_rjpeg.py /path/to/imagestack.npy -p -r row_number -c col_number 
+* python calibrate_rjpeg.py -C path/to/imagestack.npy
+* python calibrate_rjpeg.py path/to/iamgestack.npy -p -a path/to/calibrationarray.npy -f frame_number
+
 
 ## Requirements 
 
-* Carl Salvaggio's RJPEG class
+* Cooper White's LWIRImageTool module
 * Numpy
 * Pillow
 * Matplotlib
+* Scipy
+* Spectral

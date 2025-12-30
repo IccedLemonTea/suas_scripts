@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import argparse
 import os
 
-sys.path.append(os.path.expanduser("/home/cjw9009/Desktop/Senior_Project/LWIRimagetool"))
+sys.path.append(os.path.expanduser("/home/cjw9009/Desktop/Senior_Project"))
 
 import LWIRimagetool as lit
 

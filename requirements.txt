@@ -1,3 +1,5 @@
 numpy
 Pillow
 matplotlib
+scipy
+spectral
