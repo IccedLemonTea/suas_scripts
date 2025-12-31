@@ -3,7 +3,7 @@
 # Date : 09/30/2025
 # File : Blackbody.py
 ######
-# This file loads an individual pixel from an RJPEG image, 
+# This file loads an individual pixel from an RJPEG image stack, 
 # and performs the necessary calculations to find the 
 # gain and bias term of that pixel, based on a blackbody 
 # calibration run
@@ -278,27 +278,39 @@ def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
         fig, axs = plt.subplots(2,3)
         axs[0,0].plot(individual_pixel)
         axs[0,0].set_title(f"Pixel values over time at location ({row},{col})")
+        axs[0,0].set_xlabel(f"Frame number")
+        axs[0,0].set_ylabel(f"Digital Count")
 
         axs[0,1].plot(means)
         axs[0,1].set_title(f"Pixel values over time at location ({row},{col}) over " + str(chunk_size) + " frames")
+        axs[0,1].set_xlabel(f"Frame number")
+        axs[0,1].set_ylabel(f"Digital Count")
 
 
         axs[1,0].plot(first_derivative)
         axs[1,0].set_title("First derivative of Pixel")
+        axs[1,0].set_xlabel(f"Frame number")
+        axs[1,0].set_ylabel(f"Digital Count/Frame")
 
         axs[1,1].plot(second_derivative)
         axs[1,1].set_title("Second derivative of Pixel")
+        axs[1,1].set_xlabel(f"Frame number")
+        axs[1,1].set_ylabel(f"Digital Count/Frame^2")
         
         axs[0,2].scatter(range(len(individual_pixel)),individual_pixel,c='blue',s=2,marker='o',label = 'collected data')
         axs[0,2].scatter(average_x_vals,step_averages,c='red',s=30,marker='o', label = 'averages')
         axs[0,2].set_title("Averaged step levels plotted over raw data")
         axs[0,2].legend()
+        axs[0,2].set_xlabel(f"Frame number")
+        axs[0,2].set_ylabel(f"Digital Count")
 
         # print(f"The list of regions to average over is as follows {array_of_avg_coords}")
         axs[1,2].scatter(step_averages,band_radiances, c='blue', label='Averaged Data')
         axs[1,2].plot(step_averages, gain*step_averages+bias, c='red', label ='line of best fit')
         axs[1,2].set_title("Intgerated BB radiance vs DC")
         axs[1,2].legend()
+        axs[1,2].set_xlabel(f"Digital Count")
+        axs[1,2].set_ylabel(f"Band Radiance [W/m^2/sr]")
 
         fig.tight_layout()
         plt.show()
