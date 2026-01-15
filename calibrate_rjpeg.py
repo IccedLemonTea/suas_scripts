@@ -16,7 +16,7 @@ import os
 
 sys.path.append(os.path.expanduser("/home/cjw9009/Desktop/Senior_Project"))
 
-import LWIRimagetool as lit
+import LWIRImageTool as lit
 
 def generate_coefficients(src_image):
     # Apply coefficients
@@ -128,17 +128,25 @@ def generate_coefficients(src_image):
 
             ### Generating blackbody band radiances ###
             blackbody = lit.Blackbody()
-            wavelengths = np.linspace(8, 14, 10000)
             band_radiances = []
+
+            txt_content = np.loadtxt("/home/cjw9009/Desktop/Senior_Project/FLIRSIRAS_CalData/flir_boson_with_13mm_45fov.txt", skiprows=1, delimiter=',')
+            wavelengths = txt_content[:, 0]
+            response = txt_content[:, 1]
+
             for i in range(step_averages.shape[0]):
                 temp = 283 + i*5.0
                 blackbody.absolute_temperature = temp
-                band_radiances.append(blackbody.band_radiance(wavelengths))
+                band_radiances.append(blackbody.band_radiance(wavelengths, response))
 
             ### Applying Linear Regression to find gain and bias terms ###
             gain, bias = np.polyfit(step_averages,band_radiances,1)
             cal_array[r,c,0] = gain
             cal_array[r,c,1] = bias
+
+            ##### ADD NEDT HERE YIIPPPPPIPIPIPIPIPIPIPPPIIIIPPPIPIPPPIIIIPIIIEEEEEE #########
+            #################################################################################
+            #################################################################################
 
 
     np.save("20251202_1400_fullimage_bbrun_cal_array_corrected", cal_array)
@@ -262,12 +270,16 @@ def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
 
         ### Generating blackbody band radiances ###
                 blackbody = lit.Blackbody()
-                wavelengths = np.linspace(8, 14, 10000)
                 band_radiances = []
+
+                txt_content = np.loadtxt("/home/cjw9009/Desktop/Senior_Project/FLIRSIRAS_CalData/flir_boson_with_13mm_45fov.txt", skiprows=1, delimiter=',')
+                wavelengths = txt_content[:, 0]
+                response = txt_content[:, 1]
+
                 for i in range(step_averages.shape[0]):
                     temp = 283 + i*5.0
                     blackbody.absolute_temperature = temp
-                    band_radiances.append(blackbody.band_radiance(wavelengths))
+                    band_radiances.append(blackbody.band_radiance(wavelengths, response))
 
                 ### Applying Linear Regression to find gain and bias terms ###
                 gain, bias = np.polyfit(step_averages,band_radiances,1)
