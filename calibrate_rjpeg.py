@@ -147,6 +147,11 @@ def generate_coefficients(src_image):
             ##### ADD NEDT HERE YIIPPPPPIPIPIPIPIPIPIPPPIIIIPPPIPIPPPIIIIPIIIEEEEEE #########
             #################################################################################
             #################################################################################
+            # Use array_of_avg_coords to index into the pixel stack
+            # e.g. arrary_of_... has [0 100 105 200 205 300] where each pair (0,100)(105,200) is the flat portion of the blackbody step
+            # Once you have that, you can process on the raw digital counts by accesing them via src_image[row,col,depth]. Depth should be all though (:)
+            # src_image*gain + bias to get radiance units on image
+            # perform NEDT like Carl wants by averaging Radiance image over array_of_avg_coords pairs.
 
 
     np.save("20251202_1400_fullimage_bbrun_cal_array_corrected", cal_array)
