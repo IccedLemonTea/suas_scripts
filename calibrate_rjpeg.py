@@ -14,148 +14,13 @@ import matplotlib.pyplot as plt
 import argparse
 import os
 
-sys.path.append(os.path.expanduser("/home/cjw9009/Desktop/Senior_Project"))
-
-import LWIRImageTool as lit
-
-def generate_coefficients(src_image):
-    # Apply coefficients
-    cal_array = np.empty((src_image.shape[0], src_image.shape[1],2))
-    for c in range(src_image.shape[1]):
-        for r in range(src_image.shape[0]):
-            print(f"Currently processing pixel of position ({r},{c})")
-            # individual pixel being selected as a 1d vector, changing with time
-            individual_pixel = src_image[r,c,:]
-            #print(f"Loaded data of size {individual_pixel.shape}")
-
-            # Averaging data to smooth 1st derivative
-            chunk_size = int(individual_pixel.shape[0]*0.001)
-            #print(f"The data size is {individual_pixel.shape[0]} the chunk size is {chunk_size}")
-            means = []
-            for i in range(0,individual_pixel.shape[0], chunk_size):
-                chunk = individual_pixel[i:i+chunk_size]
-                means.append(chunk.mean())
-
-            first_derivative = np.gradient(means)
-            second_derivative = np.gradient(first_derivative)
-
-            stdev_first_deriv = np.std(first_derivative)
-            stdev_second_deriv = np.std(second_derivative)
-            mean_first_deriv = np.mean(first_derivative)
-            mean_second_deriv = np.mean(second_derivative)
-
-            # print(f"The mean of the first deriv is {mean_first_deriv}, and {mean_second_deriv} for the second deriv")
-            # print(f"99% Of the data lies within {3*stdev_first_deriv} for the first deriv, and {3*stdev_second_deriv} for the second deriv")
-
-
-            ### CALCULATING THE REGIONS OF ASCENSION ###
-            # Vector to hold all values of when the 1st derivative exceeds 3 stdevs of the mean
-            # Means that the DC of the scene is changing --> new temperature being reached in the cal run 
-            # e.g. ascends to a new temperature
-            change_in_temp = [0]
-
-            for i in range(first_derivative.shape[0]):
-                if first_derivative[i] >= (3*stdev_first_deriv + mean_first_deriv):
-                    if change_in_temp is not None:
-                        change_in_temp.append(i)
-                    else:
-                        change_in_temp = []
-                        change_in_temp.append(i)
-
-            # Adding end point of derivative vector
-            change_in_temp.append(first_derivative.shape[0])
-
-
-            # Vector to hold all derivative values that 
-            # signal the beginning and end of the temperature change 
-            # portion of the blackbody run (ASCENSION)
-            ascension_start = []
-            ascension_end = []
-            for i in range(second_derivative.shape[0]):
-                if second_derivative[i] >= (3*stdev_second_deriv + mean_second_deriv):
-                    ascension_start.append(i)
-                if second_derivative[i] <= (-3*stdev_second_deriv + mean_second_deriv):
-                    ascension_end.append(i)
-
-            # Window searching 1% of the data size
-            window = int(len(means))*0.01 
-            ascensions = False
-            # print(f"ascenscion start size {len(ascension_start)} ascenscion end size {len(ascension_end)}")
-            # Finding the max and min frame counts of the ascension
-            for i in range(len(change_in_temp)-1):
-                temp_ascension = []
-                for j in range(len(ascension_start)):
-                    if (change_in_temp[i] + window) >= ascension_start[j] and (change_in_temp[i] - window <= ascension_start[j]):
-                        temp_ascension.append(ascension_start[j])
-                for j in range(len(ascension_end)):
-                    if (change_in_temp[i] + window) >= ascension_end[j] and (change_in_temp[i] - window <= ascension_end[j]):
-                        temp_ascension.append(ascension_end[j])
-                # print(change_in_temp[i])
-                # print(temp_ascension)
-                if temp_ascension == []:
-                    continue
-                else:
-                    begin_average = min(temp_ascension)
-                    end_average = max(temp_ascension)
-                    if (change_in_temp[i+1] > change_in_temp[i] + window):
-                        if ascensions == False:
-                            array_of_avg_coords = np.array([0, begin_average, end_average])
-                            ascensions = True
-                        else:
-                            array_of_avg_coords = np.append(array_of_avg_coords,[begin_average,end_average])
-            # print(f"the list of asecnsion start coords are {ascension_start}")
-            # print(f"the list of asecnsion end coords are {ascension_end}")
-            array_of_avg_coords = np.append(array_of_avg_coords, len(means))
-            # print(f"The array of coords to average over is {array_of_avg_coords}")
-            step_averages = np.array([])
-            average_x_vals = np.array([])
-
-            # Averaging between the end of one ascension and beginning of next
-            # 2nd derivative min --> 2nd derivative max
-            for i in range(0, array_of_avg_coords.shape[0]-1,2):
-                step_cum_sum = 0.0
-                count = 0.0
-                average_x_vals = np.append(average_x_vals,int((array_of_avg_coords[i] + array_of_avg_coords[i+1])/2)*chunk_size)
-
-                for j in range(array_of_avg_coords[i],array_of_avg_coords[i+1]-1,1):
-                    if first_derivative[j] <= (3*stdev_first_deriv + mean_first_deriv):
-                        for b in range(j*chunk_size,(j+1)*chunk_size,1):
-                            step_cum_sum = step_cum_sum + individual_pixel[b]
-                            count = count + 1
-                if count != 0:
-                    step_cum_sum = float(step_cum_sum / count)   
-                    step_averages = np.append(step_averages,[step_cum_sum])
-
-            ### Generating blackbody band radiances ###
-            blackbody = lit.Blackbody()
-            band_radiances = []
-
-            txt_content = np.loadtxt("/home/cjw9009/Desktop/Senior_Project/FLIRSIRAS_CalData/flir_boson_with_13mm_45fov.txt", skiprows=1, delimiter=',')
-            wavelengths = txt_content[:, 0]
-            response = txt_content[:, 1]
-
-            for i in range(step_averages.shape[0]):
-                temp = 283 + i*5.0
-                blackbody.absolute_temperature = temp
-                band_radiances.append(blackbody.band_radiance(wavelengths, response))
-
-            ### Applying Linear Regression to find gain and bias terms ###
-            gain, bias = np.polyfit(step_averages,band_radiances,1)
-            cal_array[r,c,0] = gain
-            cal_array[r,c,1] = bias
-
-            ##### ADD NEDT HERE YIIPPPPPIPIPIPIPIPIPIPPPIIIIPPPIPIPPPIIIIPIIIEEEEEE #########
-            #################################################################################
-            #################################################################################
-            # Use array_of_avg_coords to index into the pixel stack
-            # e.g. arrary_of_... has [0 100 105 200 205 300] where each pair (0,100)(105,200) is the flat portion of the blackbody step
-            # Once you have that, you can process on the raw digital counts by accesing them via src_image[row,col,depth]. Depth should be all though (:)
-            # src_image*gain + bias to get radiance units on image
-            # perform NEDT like Carl wants by averaging Radiance image over array_of_avg_coords pairs.
-
-
-    np.save("20251202_1400_fullimage_bbrun_cal_array_corrected", cal_array)
-
+from LWIRImageTool.Blackbody import Blackbody
+from LWIRImageTool.BlackbodyCalibrationConfig import BlackbodyCalibrationConfig
+from LWIRImageTool.CalibrationDataFactory import CalibrationDataFactory
+from LWIRImageTool.StackImages import stack_images
+import scipy.integrate as integrate
+import scipy.constants as const
+import math
 
 def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
     if cal_array is not None:
@@ -186,7 +51,7 @@ def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
             chunk = individual_pixel[i:i+chunk_size]
             means.append(chunk.mean())
 
-        first_derivative = np.gradient(means)
+        first_derivative = np.gradient(individual_pixel)
         second_derivative = np.gradient(first_derivative)
 
         stdev_first_deriv = np.std(first_derivative)
@@ -253,7 +118,7 @@ def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
                     else:
                         array_of_avg_coords = np.append(array_of_avg_coords,[begin_average,end_average])
 
-        array_of_avg_coords = np.append(array_of_avg_coords, len(means))
+        array_of_avg_coords = np.append(array_of_avg_coords, len(individual_pixel))
         step_averages = np.array([])
         average_x_vals = np.array([])
 
@@ -274,10 +139,10 @@ def plotting_bb_run(src_image, cal_array=None, frame_number=None, row=0, col=0):
                 step_averages = np.append(step_averages,[step_cum_sum])
 
         ### Generating blackbody band radiances ###
-                blackbody = lit.Blackbody()
+                blackbody = Blackbody()
                 band_radiances = []
 
-                txt_content = np.loadtxt("/home/cjw9009/Desktop/Senior_Project/FLIRSIRAS_CalData/flir_boson_with_13mm_45fov.txt", skiprows=1, delimiter=',')
+                txt_content = np.loadtxt("/home/cjw9009/Desktop/suas_data/FLIRSIRAS_CalData/flir_boson_with_13mm_45fov.txt", skiprows=1, delimiter=',')
                 wavelengths = txt_content[:, 0]
                 response = txt_content[:, 1]
 
@@ -371,10 +236,111 @@ def main():
             print(f"File not recognized {args.path}")
 
     if args.calibrate:
-        if os.path.isfile(args.path):
-            print(f"Detected file: {args.path}")
-            src_image = np.load(args.path)
-            generate_coefficients(src_image)
+        if os.path.isdir(args.path):
+            print(f"Detected dir: {args.path}")
+            txt_content = np.loadtxt(
+                "/home/cjw9009/Desktop/suas_data/flir_boson_with_13mm_45fov.txt",
+                skiprows=1,
+                delimiter=',')
+            wavelengths = txt_content[:, 0]
+            response = txt_content[:, 1]
+
+            ### USER TEST CONFIG ###
+            test_directory = args.path
+            test_filetype = "rjpeg"
+            test_rsr = "/home/cjw9009/Desktop/suas_data/flir_boson_with_13mm_45fov.txt"
+
+            print("Starting BlackbodyCalibration test...")
+
+            # Build validated config
+            config = BlackbodyCalibrationConfig(
+                directory=test_directory,
+                filetype=test_filetype,
+                blackbody_temperature=283.15,  # K
+                temperature_step=5.0,  # K
+                rsr=test_rsr,
+                progress_cb=None)
+            print("Config Validated")
+            # Create calibration via factory
+            calib = CalibrationDataFactory.create(config)
+
+            print("Calibration object created successfully.")
+            print(f"Image stack shape: {calib.image_stack.shape}")
+            print(f"Coefficient array shape: {calib.coefficients.shape}")
+
+            # Save coefficients
+            np.save(f"{args.array}_coefficients.npy", calib.coefficients)
+
+            stack = calib.image_stack
+            array_of_avg_coords = calib.find_ascensions(stack, 3, 0.001, [])
+            # multiply DC by gain, add bias to get per pixel radiance
+
+
+            # NEDT Calculation ### ADD CODE HERE
+            print(array_of_avg_coords.shape[0])
+            print(array_of_avg_coords)
+            temps = [
+                283.15, 288.15, 293.15, 298.15, 303.15, 308.15, 313.15, 318.15, 323.15,
+                328.15, 333.15, 338.15, 343.15
+            ]
+            NEDT_array = np.empty((stack.shape[0], stack.shape[1], len(temps)))
+            plancks_constant = const.h  # 6.62607015e-34 [Joules*Seconds]
+            speed_of_light_constant = const.c  # 299792458.0 [Meters/Second]
+            boltzmann_constant = const.k  # 1.380649e-23 [Joules/Kelvin]
+
+            wavelengths = wavelengths * 0.000001
+            numerator = 2 * plancks_constant * speed_of_light_constant * speed_of_light_constant
+
+            # Precompute wavelength-only constants (done ONCE)
+            wl = wavelengths
+            wl5 = wl**5
+            resp = response
+
+            hc_over_k = plancks_constant * speed_of_light_constant / boltzmann_constant
+
+            for r in range(stack.shape[0]):
+                for c in range(stack.shape[1]):
+
+                    individual_pixel = stack[r, c, :]
+                    individual_pixel_rad = individual_pixel * calib.coefficients[
+                        r, c, 0] + calib.coefficients[r, c, 1]
+                    pixel_rad = individual_pixel_rad  # alias (faster lookup)
+
+                    for i, To in enumerate(temps):
+
+                        start = array_of_avg_coords[2 * i]
+                        stop = array_of_avg_coords[2 * i + 1]
+
+                        diffs = np.diff(pixel_rad[start:stop])
+
+                        avg_diff = np.mean(diffs)
+                        sigma_diff = np.std(diffs, ddof=0)
+                        sigma = sigma_diff / np.sqrt(2)
+
+                        # Vectorized Planck derivative
+                        Xo = hc_over_k / (wl * To)
+                        expX = np.exp(Xo)
+
+                        numerator_dL = numerator * expX * Xo
+                        denominator = wl5 * (expX - 1)**2 * To
+
+                        dLdT = (numerator_dL / denominator) * resp
+
+                        int_dLdT = integrate.simpson(dLdT, wavelengths)
+
+                        NEDT_array[r, c, i] = sigma / int_dLdT
+
+            print(f"{NEDT_array.shape}")
+
+            np.save(f"{args.array}_NEDT_array.npy", NEDT_array)
+            mean_NEDT = np.mean(NEDT_array, axis=(0, 1))
+            print(f"Size of mean_NEDT{mean_NEDT.shape}")
+            plt.scatter(range(10, 71, 5), mean_NEDT)
+            plt.title("Average NEDT at each step")
+            plt.xlabel("Temperature in Kelvin (Step Temperature)")
+            plt.ylabel("Mean NEDT")
+            plt.savefig("Plot of updated NEDT")
+            plt.show()
 
 if __name__ == "__main__":
     main()

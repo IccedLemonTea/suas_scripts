@@ -16,9 +16,9 @@ import argparse
 import sys
 
 # Add the path to the flir directory
-sys.path.append(os.path.expanduser("~/Desktop/Senior_Project/flir"))
 
-from RJPEG import RJPEG
+from LWIRImageTool.RJPEG import RJPEG
+from LWIRImageTool.StackImages import stack_images
 
 
 
@@ -40,64 +40,48 @@ def compute_single_average(src: RJPEG):
 
 
 def compute_directory_average(directory: str, array_name: str, kernel_size: int = 10):
-    """Computes the average of the image center across a directory of RJPEGs."""
-    print(f"Computing averages for all images in directory: {directory}")
-    averages = []
 
-    directory = os.fsencode(directory)
-    first_image_path = None
-
-    # Loop through each RJPEG image
-    for file in sorted(os.listdir(directory)):
-        filename = os.fsdecode(file)
-        if filename.endswith("_R.jpg"):
-            file_path = os.path.join(os.fsdecode(directory), filename)
-            if first_image_path is None:
-                # Load first image to get shape and center
-                first_src = RJPEG(file_path)
-                center_y, center_x = first_src.shape[0] // 2, first_src.shape[1] // 2
-                half_k = kernel_size // 2
-            # Process current image
-            src = RJPEG(file_path)
-            patch = src.raw_counts[
-                center_y - half_k:center_y + half_k,
-                center_x - half_k:center_x + half_k
-            ]
-            averages.append(np.average(patch))
-            print(f"Appending {filename} to array")
-
-    averages = np.array(averages)
-    np.save(array_name, averages)
-    print(f"Saved averages to {array_name}")
-    return averages
+    stack = stack_images(directory, "rjpeg")
+    np.save(array_name, stack)
+    print(f"Saved stack to {array_name}")
+    return stack
 
 
-def plot_results(main_run, run2, run3):
+def plot_results(main_run):
     """Plots digital count results for comparison between runs."""
     print("Plotting ...")
     averages = np.load(main_run)
-    averages_2 = np.load(run2)
-    averages_3 = np.load(run3)
-    #averages_4 = np.load(run4)
+    averages = np.mean(averages, axis = (0,1))
 
+    temperatures = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
+    #averages_2 = np.load(run2)
+    #averages_3 = np.load(run3)
+    # averages_4 = np.load(run4)
+    
+    #averages = np.concatenate([averages[0:320], averages[370:]])
     time_minutes = np.arange(len(averages)) * 3 / 60
     # print(f"{averages.shape} {averages_2.shape} {averages_3.shape}")
-    
-    averages_2_corrected = averages_2[0:1365]
-
-    plt.plot(time_minutes, averages, label="12/10_1330")
-    plt.plot(time_minutes, averages_2[0:2050], label="12/16_1430")
-    plt.plot(time_minutes, averages_3[0:2050], label="12/06_1200")
+    # plt.plot(time_minutes, averages, label="02/10")
+    #plt.plot(time_minutes, averages_2[0:1805], label="01/30/26")
+    #plt.plot(time_minutes, averages_3[0:2050], label="12/06_1200")
     # lt.plot(time_minutes, averages_4[0:712], label='1530 Manual FFC run')
+    
+    fig, ax1 = plt.subplots()
 
-    plt.xlabel("Minutes")
-    plt.ylabel("Digital Count")
-    plt.title("10 EC 10-70 x 5 BB manual FFC")
-    plt.grid(True)
-    plt.legend()
+    ax1.plot(time_minutes, averages, label="02/10")
+    ax1.set_xlabel("Minutes")
+    ax1.set_ylabel("Digital Count")
+    ax1.grid(True)
+
+    # ---- SECOND Y AXIS ----
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Temperature [C]")   # <-- change this text to include degrees
+    ax2.set_ylim([10, 70])
+    # ax2.scatter(time_minutes[indices], temperatures)
+    plt.title("10 Environmental Chamber BB Runs")
+    ax1.legend()
+
     plt.show()
-    plt.savefig("20251216_bb_manualFFC_with_three_wiggles")
-    print("Plot complete.")
 
 
 def main():
@@ -108,7 +92,7 @@ def main():
     ap.add_argument("-s", "--show", action="store_true", help="Show image")
     ap.add_argument("-S", "--single", action="store_true", help="Compute average digital count for one image")
     ap.add_argument("-a", "--array", help="Name of numpy array to save averages")
-    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=3)
+    ap.add_argument("-p", "--plot", help="Plot results (requires run file paths)", nargs=1)
 
     args = ap.parse_args()
 
