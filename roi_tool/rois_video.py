@@ -209,13 +209,6 @@ class ROITransformService:
         # Normalize homogenous coordinates and format as (x,y) pairs
         coords = transformed[:2] / transformed[2]
         return coords.T[:, [1, 0]]
-
-    # def clone_with_transform(self, roi, M):
-    #     raise NotImplementedError
-    #     new_coords = self.transform(roi, M)
-    #     new_roi = LabeledPolyLineROI(new_coords, roi.metadata.id, closed=roi.closed)
-    #     new_roi.metadata = copy.deepcopy(roi.metadata)
-    #     return new_roi
     
     def extract_transform_data(self, roi: pg.PolyLineROI, transform_matrix: NDArray) -> dict:
         """
@@ -274,6 +267,9 @@ class ROIStatsService:
 
 @dataclass(frozen=True)
 class ExportService:
+    """
+    Saves ROI metadata and location in a pickle (.pkl) file, and the metadata into a human-readable CSV.
+    """
     save_file: str
     savedir: str
 
@@ -342,6 +338,8 @@ class ExportService:
 # GUI Classes
 # -------------------------------
 class LabeledPolyLineROI(pg.PolyLineROI):
+    """PolyLineROI (or "ROI" as referred to in code), labeled with a unique ID number"""
+    
     def __init__(
         self,
         positions,
@@ -429,6 +427,12 @@ class LabeledPolyLineROI(pg.PolyLineROI):
 
 
 class ImageViewer(QMainWindow):
+    """
+    Main execution script to administrate over the ROIs' display, statistics calculations, calibration, and propagation.
+    
+    Bit of a cluster duck, but I'm not being paid to fix it.
+    """
+    
     def __init__(
         self,
         data_dir,
@@ -644,7 +648,7 @@ class ImageViewer(QMainWindow):
     # (Private) ROI Helpers
     # --------------------------------------------------------
 
-    def _create_default_roi(self):
+    def _create_default_roi(self) -> LabeledPolyLineROI:
         """Create a default square ROI with new ID. Placed the ROI in top left."""
 
         points = [
@@ -662,11 +666,11 @@ class ImageViewer(QMainWindow):
 
         return roi
 
-    def _register_new_roi(self, roi:pg.PolyLineROI):
+    def _register_new_roi(self, roi:pg.PolyLineROI) -> None:
         """Store ROI in internal data structure."""
         self.roi_data.setdefault(self.current_index, []).append(roi)
 
-    def _attach_roi_to_view(self, roi:pg.PolyLineROI):
+    def _attach_roi_to_view(self, roi:pg.PolyLineROI) -> None:
         """Add ROI to view and connect change handler."""
 
         roi.addToView(self.view_lwir)
@@ -702,7 +706,7 @@ class ImageViewer(QMainWindow):
                 "Successfully computed and saved ROI statistics"
             )
 
-    def _update_all_roi_statistics(self):
+    def _update_all_roi_statistics(self) -> None:
         """Recompute calibrated statistics for all frames"""
         
         for frame_idx, rois in self.roi_data.items():
@@ -738,7 +742,7 @@ class ImageViewer(QMainWindow):
                     roi.metadata.mean = mean
                     roi.metadata.stdev = std
 
-    def _toggle_stats(self):
+    def _toggle_stats(self) -> None:
         """
         Toggles display between DC and Calibrated values and refreshes labels.
         """
@@ -847,7 +851,7 @@ class ImageViewer(QMainWindow):
 
         return propagated_count
 
-    def _show_propagation_result(self, count: int):
+    def _show_propagation_result(self, count: int) -> None:
         """Display propogation success to user in GUI"""
         QMessageBox.information(
             self,
@@ -988,7 +992,7 @@ class ImageViewer(QMainWindow):
     # ----------------
     # Main executables
     # ----------------
-    def update_frame(self, index: int):
+    def update_frame(self, index: int) -> None:
         """Updated frame after the user interfaces with GUI"""
 
         # Hide previous ROIs when going through video
@@ -1001,8 +1005,7 @@ class ImageViewer(QMainWindow):
         self._display_current_image()
         self._show_rois_for_frame(index)
         
-
-    def propagate_rois(self):
+    def propagate_rois(self) -> None:
         """ROI propagation pipeline"""
 
         # Check if propogation is possible
@@ -1022,14 +1025,14 @@ class ImageViewer(QMainWindow):
         # Refresh current frame display
         self.update_frame(self.current_index)
 
-    def add_roi(self):
+    def add_roi(self) -> None:
         """Create a default ROI in top-left corner (Joe's default)"""
         roi = self._create_default_roi()
         self._register_new_roi(roi)
         self._attach_roi_to_view(roi)
         self._update_roi_display(roi)
 
-    def save_stats(self):
+    def save_stats(self) -> None:
         """Saving ROI data and statistics."""
         
         # Update the statistics that'll be saved
@@ -1041,7 +1044,7 @@ class ImageViewer(QMainWindow):
         # Save stats to CSV
         self.export_service.export_csv(self.roi_data)
 
-    def load_all_data(self):
+    def load_all_data(self) -> None:
         """Data-loading pipeline."""
         # Flight metadata
         self._load_flight_metadata()
@@ -1056,7 +1059,7 @@ class ImageViewer(QMainWindow):
         # Get the GUI started
         self._initialize_runtime_state()
 
-    def build_ui(self):
+    def build_ui(self) -> None:
         """Construct all Qt widgets, layouts, and signal connections."""
 
         # Set PyQt GUI window title
@@ -1140,7 +1143,7 @@ class ImageViewer(QMainWindow):
         # Inject the action into the context menu
         view_box.menu.addAction(self.propagate_action)
 
-    def add_view_roi(self):
+    def add_view_roi(self) -> None:
         """
         Creates a new ROI that covers the central 1/4 of the current view area
         """
@@ -1150,6 +1153,8 @@ class ImageViewer(QMainWindow):
         
         # Calculate center and offset 
         center = rect.center()
+        center_x = center.x()
+        center_y = center.y()
         w_quarter = rect.width() / 4
         h_quarter = rect.height() / 4
         w_offset = w_quarter / 2
@@ -1157,10 +1162,10 @@ class ImageViewer(QMainWindow):
         
         # Define 4 points centered on current view
         points = [
-            [center.x() - w_offset, center.y() - h_offset],
-            [center.x() - w_offset, center.y() + h_offset],
-            [center.x() + w_offset, center.y() + h_offset],
-            [center.x() + w_offset, center.y() - h_offset],
+            [center_x - w_offset, center_y - h_offset],
+            [center_x - w_offset, center_y + h_offset],
+            [center_x + w_offset, center_y + h_offset],
+            [center_x + w_offset, center_y - h_offset],
         ]
 
         # Define ROI, and add metadata to it
@@ -1175,10 +1180,11 @@ class ImageViewer(QMainWindow):
 
 
 
-# -------------------------------
-# Main Execution
-# -------------------------------
+# --------------------------------------------------------------
+# Main Execution ; gets called by the Jupyter Notebook
+# --------------------------------------------------------------
 if __name__ == "__main__":
+    
     # Argument parsing
     args = sys.argv[1:]
     assert len(args) == 7
