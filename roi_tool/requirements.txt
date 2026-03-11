@@ -1,0 +1,6 @@
+numpy
+imreg_dft
+PyQt6
+pyqtgraph
+matplotlib
+notebook
