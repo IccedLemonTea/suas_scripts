@@ -1,0 +1,8 @@
+# Temp / Build files
+__pycache__
+.ipynb_checkpoints
+.vscode
+
+# User case-specific run files
+/high_gain*
+coefficients*
